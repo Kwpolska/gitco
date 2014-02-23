@@ -1,0 +1,52 @@
+#!/usr/bin/ruby
+trap("SIGINT") do
+    puts
+    exit 130
+end
+
+branchesl = `git branch --list --color=never`
+if $?.exitstatus != 0
+    exit $?.exitstatus
+end
+
+puts "\e[36;1mChoose a Branch\e[0m"
+puts "\e[36;1m---------------\e[0m\n\n"
+
+branchesl = branchesl.split("\n")
+branches = []
+for b in branchesl
+    branch = b.slice(2, b.length)
+    if b[0] == "*"
+        current_branch = branch
+    end
+    branches.push(branch)
+end
+
+format = '%%%ii. %%s' % branches.length.to_s.length
+# breakdown:
+# %%         literal %
+#   %i       integer
+#     i. %%s literal i. %s%s
+# format % 2 => %2i. %s
+
+branches.each_with_index do |b, i|
+    if current_branch == b
+        b = "\e[32;1m#{b}\e[0m"
+    end
+    puts format % [i + 1, b]
+end
+
+puts
+
+while true
+    print "\e[36;1m>\e[0m "
+    number = gets.chomp.to_i
+    if number == 0
+        # We provide numbers starting at 1.  0 is also the “error code” of to_i.
+        puts "\e[31;1mError:\e[0m no number specified!"
+    else
+        b = branches[number - 1]
+        system("git checkout #{b}")
+        exit $?.exitstatus
+    end
+end
