@@ -4,6 +4,8 @@ Gitco
 This is a small script for checking out a Git branch without
 memorizing branch names, or copy-pasting from `git branch`.
 
+![gitco](https://raw2.github.com/Kwpolska/gitco/master/gitco.png)
+
 License
 -------
 
