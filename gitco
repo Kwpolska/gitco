@@ -32,7 +32,7 @@ for b in branchesl
     branches.push(branch)
 end
 
-format = '%%%ii. %%s' % branches.length.to_s.length
+format = "\e[1m%%%ii.\e[0m %%s" % branches.length.to_s.length
 # breakdown:
 # %%         literal %
 #   %i       integer
