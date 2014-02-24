@@ -9,8 +9,18 @@ if $?.exitstatus != 0
     exit $?.exitstatus
 end
 
-puts "\e[36;1mChoose a Branch\e[0m"
-puts "\e[36;1m---------------\e[0m\n\n"
+def header(f)
+    g = "-" * f.length
+    if f != ""
+        puts "\e[36;1mChoose a Branch (Filter: #{f})\e[0m"
+        puts "\e[36;1m-------------------------#{g}-\e[0m\n\n"
+    else
+        puts "\e[36;1mChoose a Branch\e[0m"
+        puts "\e[36;1m---------------\e[0m\n\n"
+    end
+end
+
+header('')
 
 branchesl = branchesl.split("\n")
 branches = []
@@ -38,15 +48,41 @@ end
 
 puts
 
+def checkout(b)
+    system("git checkout #{b}")
+    exit $?.exitstatus
+end
+
 while true
+    puts "\e[36mnumber → select    M → master    /QUERY → filter\e[0m"
     print "\e[36;1m>\e[0m "
-    number = gets.chomp.to_i
-    if number == 0
-        # We provide numbers starting at 1.  0 is also the “error code” of to_i.
-        puts "\e[31;1mError:\e[0m no number specified!"
+    query = gets.chomp
+    if query == "M"
+        checkout("master")
+    elsif query[0] == "/"
+        s = query.slice(1, query.length)
+        header(s)
+
+        branches.each_with_index do |b, i|
+            if current_branch == b
+                bf = "\e[32;1m#{b}\e[0m"
+            else
+                bf = b
+            end
+            if s and b.include? s
+                puts format % [i + 1, bf]
+            end
+        end
+    elsif query[0] == "q"
+        exit 0
     else
-        b = branches[number - 1]
-        system("git checkout #{b}")
-        exit $?.exitstatus
+        number = query.to_i
+        if number == 0
+            # We provide numbers starting at 1.  0 is also the “error code” of to_i.
+            puts "\e[31;1mError:\e[0m no number specified!\n\n"
+        else
+            b = branches[number - 1]
+            checkout(b)
+        end
     end
 end
