@@ -56,7 +56,14 @@ end
 while true
     puts "\e[36mnumber → select    M → master    /QUERY → filter\e[0m"
     print "\e[36;1m>\e[0m "
-    query = gets.chomp
+
+    begin
+        query = gets.chomp
+    rescue NoMethodError
+        puts # let's be nice to the terminal
+        exit 2
+    end
+
     if query == "M"
         checkout("master")
     elsif query[0] == "/"
