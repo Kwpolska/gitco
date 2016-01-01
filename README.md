@@ -9,7 +9,7 @@ memorizing branch names, or copy-pasting from `git branch`.
 License
 -------
 
-Copyright © 2014, Chris “Kwpolska” Warrick.
+Copyright © 2014-2016, Chris Warrick.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
