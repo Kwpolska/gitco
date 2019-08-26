@@ -1,5 +1,6 @@
 #!/usr/bin/ruby
-# Copyright © 2014-2018, Chris Warrick.
+# gitco
+# Copyright © 2014-2019, Chris Warrick.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,15 +31,46 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+require 'set'
+
 trap("SIGINT") do
     puts
     exit 130
 end
 
-branchesl = `git branch --list --color=never`
-if $?.exitstatus != 0
-    exit $?.exitstatus
+
+def build_branch_list(include_remote)
+    if include_remote
+        branches_raw = `git branch --all --list --color=never`
+    else
+        branches_raw = `git branch --list --color=never`
+    end
+    if $?.exitstatus != 0
+        exit $?.exitstatus
+    end
+    branches_raw
+    branches_raw = branches_raw.split("\n")
+    branches = []
+    branch_names = Set[]
+    current_branch = nil
+    for b in branches_raw
+        branch = b.slice(2, b.length)
+        if b[0] == "*"
+            current_branch = branch
+        end
+        remote = false
+        if include_remote and branch.include? "remotes/"
+            remote = true
+            branch = branch.split(" ")[0].split("/")[2..-1].join("/")
+        end
+        if not branch_names.include? branch
+            branch_names.add(branch)
+            branches.push([branch, remote])
+        end
+    end
+    return branches, current_branch
 end
+
 
 def header(f)
     g = "-" * f.length
@@ -51,41 +83,45 @@ def header(f)
     end
 end
 
-header('')
 
-branchesl = branchesl.split("\n")
-branches = []
-for b in branchesl
-    branch = b.slice(2, b.length)
-    if b[0] == "*"
-        current_branch = branch
+def print_branches(branches, current_branch, filter)
+    format = "\e[1m%%%ii.\e[0m %%s" % branches.length.to_s.length
+    # breakdown:
+    # %%         literal %
+    #   %i       integer
+    #     i. %%s literal i. %s%s
+    # format % 2 => %2i. %s
+
+    branches.each_with_index do |br, i|
+        b, remote = br
+        if current_branch == b
+            b = "\e[32;1m#{b}\e[0m"
+        end
+        if remote
+            b = "#{b} \e[35m(R)\e[0m"
+        end
+        if filter.empty? or b.include? filter
+            puts format % [i + 1, b]
+        end
     end
-    branches.push(branch)
+    puts
 end
 
-format = "\e[1m%%%ii.\e[0m %%s" % branches.length.to_s.length
-# breakdown:
-# %%         literal %
-#   %i       integer
-#     i. %%s literal i. %s%s
-# format % 2 => %2i. %s
-
-branches.each_with_index do |b, i|
-    if current_branch == b
-        b = "\e[32;1m#{b}\e[0m"
-    end
-    puts format % [i + 1, b]
-end
-
-puts
 
 def checkout(b)
     system("git checkout #{b}")
     exit $?.exitstatus
 end
 
+include_remote = false
+filter = ''
+
+branches, current_branch = build_branch_list(include_remote)
+header(filter)
+print_branches(branches, current_branch, filter)
+
 while true
-    puts "\e[36mnumber → select    M → master    /QUERY → filter\e[0m"
+    puts "\e[36mnumber → select    M → master    R → show remote branches    /QUERY → filter\e[0m"
     print "\e[36;1m>\e[0m "
 
     begin
@@ -97,20 +133,14 @@ while true
 
     if query == "M"
         checkout("master")
+    elsif query == "R"
+        include_remote = !include_remote
+        branches, current_branch = build_branch_list(include_remote)
+        print_branches(branches, current_branch, '')
     elsif query[0] == "/"
-        s = query.slice(1, query.length)
-        header(s)
-
-        branches.each_with_index do |b, i|
-            if current_branch == b
-                bf = "\e[32;1m#{b}\e[0m"
-            else
-                bf = b
-            end
-            if s and b.include? s
-                puts format % [i + 1, bf]
-            end
-        end
+        filter = query.slice(1, query.length)
+        header(filter)
+        print_branches(branches, current_branch, filter)
     elsif query[0] == "q"
         exit 0
     else
@@ -119,7 +149,7 @@ while true
             # We provide numbers starting at 1.  0 is also the “error code” of to_i.
             puts "\e[31;1mError:\e[0m no number specified!\n\n"
         else
-            b = branches[number - 1]
+            b = branches[number - 1][0]
             checkout(b)
         end
     end
