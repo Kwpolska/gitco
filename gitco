@@ -32,6 +32,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'set'
+require 'optparse'
 
 trap("SIGINT") do
     puts
@@ -115,6 +116,27 @@ end
 
 include_remote = false
 filter = ''
+
+OptionParser.new do |opts|
+    opts.banner = "Usage: gitco [-m] [-r] [-f QUERY]"
+
+    opts.on("-m", "--master", "Check out master") do |r|
+        checkout("master")
+    end
+
+    opts.on("-r", "--remote", "Include remote branches") do |r|
+        include_remote = true
+    end
+
+    opts.on("-f QUERY", "--filter QUERY", "Filter branches based on query") do |f|
+        filter = f
+    end
+
+    opts.on("-h", "--help", "Prints this help") do
+        puts opts
+        exit
+    end
+end.parse!
 
 branches, current_branch = build_branch_list(include_remote)
 header(filter)
